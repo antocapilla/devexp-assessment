@@ -1,50 +1,57 @@
-import unittest
-from unittest.mock import patch, Mock
-from src.client import SinchClient
-from src.models import Contact, Message
-from src.exceptions import BadRequestError, NotFoundError
+import pytest
+import responses
+from sinch_sdk import SinchClient, AuthenticationError
+from sinch_sdk.models import Contact, Message
 
-class TestSinchClient(unittest.TestCase):
-    def setUp(self):
-        self.client = SinchClient()
-        self.contact_data = {
-            "id": "123",
-            "name": "John Doe",
-            "phone": "+1234567890"
-        }
-        self.message_data = {
-            "id": "msg1",
-            "from": "+1111111111",
-            "to": self.contact_data,
-            "content": "Hello",
-            "status": "queued"
-        }
+@responses.activate
+def test_create_contact(client):
+    contact_data = {
+        "id": "123",
+        "name": "John Doe",
+        "phone": "+1234567890"
+    }
+    
+    responses.add(
+        responses.POST,
+        "http://localhost:3000/contacts",
+        json=contact_data,
+        status=201
+    )
+    
+    contact = client.create_contact(
+        name="John Doe",
+        phone="+1234567890"
+    )
+    
+    assert isinstance(contact, Contact)
+    assert contact.id == "123"
+    assert contact.name == "John Doe"
+    assert contact.phone == "+1234567890"
 
-    @patch('requests.Session.post')
-    def test_create_contact(self, mock_post):
-        mock_response = Mock()
-        mock_response.status_code = 201
-        mock_response.content = True
-        mock_response.json.return_value = self.contact_data
-        mock_post.return_value = mock_response
-
-        contact = self.client.create_contact(
-            name=self.contact_data["name"],
-            phone=self.contact_data["phone"]
-        )
-        self.assertEqual(contact.id, "123")
-
-    @patch('requests.Session.get')
-    def test_list_contacts(self, mock_get):
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.content = True
-        mock_response.json.return_value = {
-            "contactsList": [self.contact_data],
-            "pageNumber": 0,
-            "pageSize": 10
-        }
-        mock_get.return_value = mock_response
-
-        contacts = self.client.list_contacts()
-        self.assertEqual(len(contacts), 1)
+@responses.activate
+def test_send_message(client):
+    message_data = {
+        "id": "456",
+        "from": "+1987654321",
+        "to": {"id": "123"},
+        "content": "Hello!",
+        "status": "queued",
+        "created_at": "2024-01-01T12:00:00Z"
+    }
+    
+    responses.add(
+        responses.POST,
+        "http://localhost:3000/messages",
+        json=message_data,
+        status=201
+    )
+    
+    message = client.send_message(
+        from_="+1987654321",
+        to={"id": "123"},
+        content="Hello!"
+    )
+    
+    assert isinstance(message, Message)
+    assert message.id == "456"
+    assert message.status == "queued"
