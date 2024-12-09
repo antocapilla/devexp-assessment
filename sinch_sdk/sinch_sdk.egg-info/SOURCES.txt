@@ -1,0 +1,7 @@
+setup.py
+sinch_sdk.egg-info/PKG-INFO
+sinch_sdk.egg-info/SOURCES.txt
+sinch_sdk.egg-info/dependency_links.txt
+sinch_sdk.egg-info/requires.txt
+sinch_sdk.egg-info/top_level.txt
+tests/test_client.py
